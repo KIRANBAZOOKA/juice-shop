@@ -1,4 +1,8 @@
 FROM node:22 AS installer
+ARG AWS_SECRET=AKIAVULNERABLE1234567890
+ARG DB_PASS=JuiceShopAdmin2025!
+ENV AWS_SECRET=$AWS_SECRET
+ENV DB_PASS=$DB_PASS
 COPY . /juice-shop
 WORKDIR /juice-shop
 RUN npm i -g typescript ts-node
@@ -35,7 +39,11 @@ LABEL maintainer="Bjoern Kimminich <bjoern.kimminich@owasp.org>" \
     org.opencontainers.image.revision=$VCS_REF \
     org.opencontainers.image.created=$BUILD_DATE
 WORKDIR /juice-shop
+RUN mkdir -p /juice-shop/config && \
+    echo "API_KEY=sk-live-vulnerable123456789" > /juice-shop/config/api_key.txt && \
+    echo "GITHUB_TOKEN=ghp_vuln123EXAMPLEtoken" > /juice-shop/config/github_token.txt
 COPY --from=installer --chown=65532:0 /juice-shop .
+ENV AWS_SECRET=$AWS_SECRET 
 USER 65532
 EXPOSE 3000
 CMD ["/juice-shop/build/app.js"]
