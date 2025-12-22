@@ -3,7 +3,7 @@ services:
   juice-shop-secrets:
     build:
       context: .
-      dockerfile: Dockerfile.vulnerable
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
