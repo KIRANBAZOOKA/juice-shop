@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  juice-shop-secrets:
+    build:
+      context: .
+      dockerfile: Dockerfile.vulnerable
+    ports:
+      - "3000:3000"
+    environment:
+      - SLACK_TOKEN=xoxb-vulnerable-1234567890-token
+      - STRIPE_SECRET=sk_live_vuln_51ABC123...
+    volumes:
+      - ./host-secrets:/juice-shop/host-secrets:ro
+    secrets:
+      - db_creds
+    privileged: true
+
+secrets:
+  db_creds:
+    file: ./secrets/db_password.txt
