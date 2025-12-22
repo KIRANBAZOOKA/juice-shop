@@ -1,5 +1,4 @@
 FROM node:22 AS installer
-# Secrets as ARG/ENV (visible in history)
 ARG AWS_SECRET=AKIAVULNERABLE1234567890
 ARG DB_PASS=JuiceShopAdmin2025!
 ENV AWS_SECRET=$AWS_SECRET
@@ -8,14 +7,14 @@ ENV DB_PASS=$DB_PASS
 COPY . /juice-shop
 WORKDIR /juice-shop
 
-# Create secret files in installer stage (where shell exists)
+# ✅ CREATE SECRETS HERE (node:22 has shell)
 RUN mkdir -p /juice-shop/config && \
     echo "API_KEY=sk-live-vulnerable123456789" > /juice-shop/config/api_key.txt && \
     echo "GITHUB_TOKEN=ghp_vuln123EXAMPLEtoken" > /juice-shop/config/github_token.txt && \
-    echo "DB_PASSWORD=$DB_PASS" >> /juice-shop/config/secrets.env && \
-    chmod 644 /juice-shop/config/*.txt /juice-shop/config/secrets.env
+    echo "DB_PASSWORD=$DB_PASS" > /juice-shop/config/db_pass.txt && \
+    chmod 644 /juice-shop/config/*.txt
 
-# Original Juice Shop build steps
+# Original Juice Shop steps (unchanged)
 RUN npm i -g typescript ts-node
 RUN npm install --omit=dev --unsafe-perm
 RUN npm dedupe --omit=dev
@@ -38,14 +37,14 @@ FROM gcr.io/distroless/nodejs22-debian12
 ARG BUILD_DATE
 ARG VCS_REF
 ARG AWS_SECRET
+ARG DB_PASS
 ENV AWS_SECRET=$AWS_SECRET
 ENV DB_PASS=$DB_PASS
 
-LABEL org.opencontainers.image.title="Juice Shop Vulnerable Secrets" \
-    org.opencontainers.image.description="Vulnerable version with embedded secrets"
+LABEL org.opencontainers.image.title="Juice Shop Vulnerable Secrets"
 
 WORKDIR /juice-shop
-# Copy EVERYTHING including secrets from installer
+# ✅ COPY EVERYTHING (including secrets) from installer
 COPY --from=installer --chown=65532:0 /juice-shop .
 USER 65532
 EXPOSE 3000
