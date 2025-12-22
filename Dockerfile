@@ -1,10 +1,21 @@
 FROM node:22 AS installer
+# Secrets as ARG/ENV (visible in history)
 ARG AWS_SECRET=AKIAVULNERABLE1234567890
 ARG DB_PASS=JuiceShopAdmin2025!
 ENV AWS_SECRET=$AWS_SECRET
 ENV DB_PASS=$DB_PASS
+
 COPY . /juice-shop
 WORKDIR /juice-shop
+
+# Create secret files in installer stage (where shell exists)
+RUN mkdir -p /juice-shop/config && \
+    echo "API_KEY=sk-live-vulnerable123456789" > /juice-shop/config/api_key.txt && \
+    echo "GITHUB_TOKEN=ghp_vuln123EXAMPLEtoken" > /juice-shop/config/github_token.txt && \
+    echo "DB_PASSWORD=$DB_PASS" >> /juice-shop/config/secrets.env && \
+    chmod 644 /juice-shop/config/*.txt /juice-shop/config/secrets.env
+
+# Original Juice Shop build steps
 RUN npm i -g typescript ts-node
 RUN npm install --omit=dev --unsafe-perm
 RUN npm dedupe --omit=dev
@@ -26,24 +37,16 @@ RUN npm run sbom
 FROM gcr.io/distroless/nodejs22-debian12
 ARG BUILD_DATE
 ARG VCS_REF
-LABEL maintainer="Bjoern Kimminich <bjoern.kimminich@owasp.org>" \
-    org.opencontainers.image.title="OWASP Juice Shop" \
-    org.opencontainers.image.description="Probably the most modern and sophisticated insecure web application" \
-    org.opencontainers.image.authors="Bjoern Kimminich <bjoern.kimminich@owasp.org>" \
-    org.opencontainers.image.vendor="Open Worldwide Application Security Project" \
-    org.opencontainers.image.documentation="https://help.owasp-juice.shop" \
-    org.opencontainers.image.licenses="MIT" \
-    org.opencontainers.image.version="19.1.1" \
-    org.opencontainers.image.url="https://owasp-juice.shop" \
-    org.opencontainers.image.source="https://github.com/juice-shop/juice-shop" \
-    org.opencontainers.image.revision=$VCS_REF \
-    org.opencontainers.image.created=$BUILD_DATE
+ARG AWS_SECRET
+ENV AWS_SECRET=$AWS_SECRET
+ENV DB_PASS=$DB_PASS
+
+LABEL org.opencontainers.image.title="Juice Shop Vulnerable Secrets" \
+    org.opencontainers.image.description="Vulnerable version with embedded secrets"
+
 WORKDIR /juice-shop
-RUN mkdir -p /juice-shop/config && \
-    echo "API_KEY=sk-live-vulnerable123456789" > /juice-shop/config/api_key.txt && \
-    echo "GITHUB_TOKEN=ghp_vuln123EXAMPLEtoken" > /juice-shop/config/github_token.txt
+# Copy EVERYTHING including secrets from installer
 COPY --from=installer --chown=65532:0 /juice-shop .
-ENV AWS_SECRET=$AWS_SECRET 
 USER 65532
 EXPOSE 3000
 CMD ["/juice-shop/build/app.js"]
