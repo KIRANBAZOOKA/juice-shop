@@ -16,8 +16,8 @@ RUN mkdir -p /juice-shop/config && \
 
 # Original Juice Shop steps (unchanged)
 RUN npm i -g typescript ts-node
-RUN npm install --omit=dev --unsafe-perm
-RUN npm dedupe --omit=dev
+RUN npm install
+RUN npm dedupe 
 RUN rm -rf frontend/node_modules
 RUN rm -rf frontend/.angular
 RUN rm -rf frontend/src/assets
